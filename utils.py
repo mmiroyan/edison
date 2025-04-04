@@ -5,8 +5,10 @@ import html
 import time
 import json
 import logging
+from math import ceil
+import PyPDF2
 from pathlib import Path
-from typing import List, Dict, Any, Callable
+from typing import List, Dict, Any, Callable, Literal
 from datetime import datetime
 from xml.etree import ElementTree as ET
 
@@ -20,11 +22,14 @@ from openai import AzureOpenAI
 from azure.storage.blob import BlobServiceClient
 from azure.search.documents import SearchClient
 from azure.search.documents.models import VectorizedQuery
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai import AzureOpenAIEmbeddings
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+DocType = Literal["pdf", "json", "txt"]
 
 def question_ocr(xml: str) -> str:
     """
@@ -488,3 +493,46 @@ def reply_to_ed(course: str, id: str, text: str, post_answer: bool, private: boo
     }
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
+
+def get_semantic_chunks(
+    embeddings: AzureOpenAIEmbeddings,
+    file_path: Path, 
+    doctype: DocType = "pdf", 
+    chunk_size: int = 512,
+ ) -> list[str]:
+    """
+    Generate chunks semantically using an embedding model for a specified file path
+
+    Args:
+        embeddings (AzureOpenAIEmbeddings): The embedding model used for semantic splitting.
+        file_path (Path): The path to the file.
+        text (str): The content of the reply.
+        doctype (DocType): Type of document (pdf, json, or txt).
+        chunk_size (int): The approximate size of each chunk.
+    """
+    if doctype == "json":
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        text = data["text"]
+    elif doctype == "pdf":
+        text = ""
+        with open(file_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            num_pages = len(reader.pages)
+            for page_num in range(num_pages):
+                page = reader.pages[page_num]
+                text += page.extract_text()
+    elif doctype == "txt":
+        with open(file_path, 'r') as file:
+            data = file.read()
+        text = str(data)
+    else:
+        raise TypeError("Document is not one of the accepted types: pdf, json, txt")
+    
+    num_chunks = ceil(len(text) / chunk_size)
+    logger.debug(f"Splitting text into {num_chunks} chunks.")
+    
+    text_splitter = SemanticChunker(embeddings, number_of_chunks=num_chunks)
+    chunks = text_splitter.create_documents([text])
+    chunks = [chunk.page_content for chunk in chunks]
+    return chunks
