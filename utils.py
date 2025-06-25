@@ -74,12 +74,12 @@ def process_question(question_text: str):
     return question_text.strip()
 
 
-def ocr_process_input(thread_title: str, conversation_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def ocr_process_input(metadata: str, conversation_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Process input data by extracting context from images and formatting it into structured conversation turns.
 
     Args:
-        thread_title (str): The title of the current thread.
+        metadata (str): metadata associated with the query.
         conversation_history (List[Dict[str, Any]]): A list of previous conversation turns.
 
     Returns:
