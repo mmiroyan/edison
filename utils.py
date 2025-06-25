@@ -97,7 +97,7 @@ def ocr_process_input(metadata: str, conversation_history: List[Dict[str, Any]])
         }
         for turn in conversation_history
     ]
-    processed_conversation[0]['text'] = thread_title + '\n' + processed_conversation[0]['text']
+    processed_conversation[0]['text'] = metadata + '\n' + processed_conversation[0]['text']
     return processed_conversation
 
 
