@@ -89,7 +89,7 @@ def ocr_process_input(metadata: str, conversation_history: List[Dict[str, Any]])
         {
             'role': (
                 'Student' if turn['user_role'].lower() == 'student'
-                else 'Assistant' if turn['user_role'].lower() == 'assistant'
+                else 'Assistant 0.2.0' if turn['user_role'].lower() == 'assistant'
                 else 'TA'
             ),
             'text': process_question(turn['text']) if turn['user_role'].lower() == 'student' else turn['text'],
